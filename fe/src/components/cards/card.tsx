@@ -41,7 +41,7 @@ const VacationCard: React.FC<VacationCardProps> = ({
             <CardMedia
                 component="img"
                 height="140"
-                image={new URL(`../../images/${vacation.image}`, import.meta.url).href}
+                image={`http://localhost:3000/uploads/${vacation.image}`}
                 alt={vacation.destination}
             />
             <CardContent>

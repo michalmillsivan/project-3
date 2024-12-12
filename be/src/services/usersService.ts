@@ -1,53 +1,56 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { RowDataPacket, OkPacket } from "mysql2/promise"
+import { getConnection } from "../utils/connectionUtils";
 
-declare global {
-    namespace Express {
-        interface Request {
-            user:{role:string}
-        }
+export async function register(first_name: string, last_name: string, email: string, password: string, res: Response) { 
+    const connection = await getConnection();
+    if (!connection) {
+        throw new Error("Failed to establish a database connection");
     }
-}
+    try {
+        const result = await connection.execute<OkPacket>(
+            "INSERT INTO `michali_travels`.`users` (`first_name`, `last_name`, `email`, `password`) VALUES (?, ?, ?, ?);",
+            [first_name, last_name, email, password]
+        );
 
-//authorize middleware
-export function isAdmin(req: Request, res: Response, next: NextFunction): void {
-    const user = req.user;
-
-    if (!user) {
-        res.status(401).json({ message: "Unauthorized. Please log in." });
-        return; 
-    }
-
-    if (user.role !== "admin") {        
-        res.status(403).json({ message: "Forbidden. Admin access only." });
-        return; 
-    }
-}
-
-
-
-
-// Middleware to authenticate the token and attach user data to the request
-export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-    console.log("token", token);
-
-    if (!token) {
-        res.status(401).json({ message: "Unauthorized. Token is missing." });
-        return; // Ensure middleware terminates
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
-        if (err) {
-            res.status(403).json({ message: "Forbidden. Invalid token." });
-            return; // Ensure middleware terminates
+        if (!result) {
+            throw new Error("Query execution failed");
         }
 
-        req.user = user as { role: string }; // Attach user info to the request
-        next(); // Pass control to the next middleware
-    });
+        const [rows] = result;
+
+        return rows;
+    } catch (error : any) {
+        console.error("Error occurred:", error);
+
+    // Handle specific error cases
+    if (error.code === "ER_DUP_ENTRY") {
+        res.status(409).json({ message: "Email already exists" });
+    } else {
+        res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}  
 }
 
+export async function loginUser(email: string, password: string) {
+    const connection = await getConnection();
+    console.log("connection", connection);
+    const result = await connection?.execute<RowDataPacket[]>(
+        "SELECT * FROM users WHERE email = ? AND password = ?",
+        [email, password]
+    );
+    console.log("DB Query Result:", result);
+    // console.log("result", result);
+    
+    if (!result) {
+        return null;
+    }
 
-
+    const [rows] = result;
+    console.log("rows", rows[0]);
+    
+    if (!rows || rows.length === 0) {
+        return null;
+    }
+    return rows[0];
+}

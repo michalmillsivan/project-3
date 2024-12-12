@@ -1,0 +1,8 @@
+{
+    "loader": "ts-node/esm",
+    "experimentalSpecifierResolution": "node",
+    "timeout": 5000,
+    "spec": "tests/**/*.test.js",
+    "exit": true
+  }
+  

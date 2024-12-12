@@ -26,7 +26,19 @@ export type VacationUI = {
 };
 
 export async function getVacationsApi(): Promise<Array<VacationUI>> {
-    const result = await axios.get<{ vacations: VacationApi[] }>(vacationsURL);
+    console.log("Fetching vacations Api...");
+
+    const token = localStorage.getItem("token");
+    console.log("Token:", token);
+
+    if (!token) {
+        throw new Error("No token found");
+    }
+    const result = await axios.get<{ vacations: VacationApi[] }>(vacationsURL, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
     const data = result?.data?.vacations.map(v => {
         return {
             vacation_id: v.vacation_id,
@@ -55,7 +67,15 @@ export type FollowersUI = {
 
 export async function getFollowersApi(): Promise<Array<FollowersUI>> {
     try {
-        const result = await axios.get<{ users?: FollowersApi[] }>(followersURL);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error("No token found");
+        }
+        const result = await axios.get<{ users?: FollowersApi[] }>(followersURL, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
         console.log("API Response:", result.data);
         const data =
             result?.data?.users?.map(f => ({
@@ -72,9 +92,17 @@ export async function getFollowersApi(): Promise<Array<FollowersUI>> {
 // Add toggleFollowerApi function
 export async function toggleFollowerApi(user_id: number, vacation_id: number) {
     try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error("No token found");
+        }
         const response = await axios.post<{ following: boolean }>(`${followersURL}/toggle`, {
             user_id,
             vacation_id
+        },{
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
         console.log("Toggle Follower API Response:", response.data);

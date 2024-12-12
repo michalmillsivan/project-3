@@ -13,14 +13,22 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import { useNavigate } from "react-router-dom";
 
-const pages = ["Vacations", "About"];
-const settings = ["Logout"];
-
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
   const navigate = useNavigate();
+
+  // Get user data and role
+  const user = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  const userInfo = user ? JSON.parse(user) : null;
+  const userName = userInfo?.first_name || "";
+  const userRole = token ? JSON.parse(atob(token.split(".")[1])).role : null;
+
+  // Define pages based on role
+  const pages = userRole === "admin" ? ["Home", "About", "Admin Page", "Reports"] : ["Home", "About", "Vacations Page"];
+  const settings = ["Logout"];
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -40,35 +48,27 @@ function ResponsiveAppBar() {
 
   const handlePageNavigation = (page: string) => {
     handleCloseNavMenu();
-    if (page === "Vacations") navigate("/vacations");
+    if (page === "Admin Page") navigate("/admin");
+    if (page === "Reports") navigate("/reports");
+    if (page === "Vacations Page") navigate("/vacations");
     if (page === "About") navigate("/about");
+    if (page === "Home") navigate("/");
   };
 
   const handleUserSetting = (setting: string) => {
     handleCloseUserMenu();
     if (setting === "Logout") {
       localStorage.removeItem("token");
-      localStorage.removeItem("user"); // Clear user info
+      localStorage.removeItem("user");
       navigate("/login");
     }
   };
 
-  // Get user name from localStorage
-  const user = localStorage.getItem("user");
-  const userName = user ? JSON.parse(user).first_name : "";
-  console.log("userName:", userName);
-  
-
   // Extract the first letter of the user name
   const userInitial = userName ? userName.charAt(0).toUpperCase() : "?";
-  console.log("userInitial:", userInitial);
-  
 
   return (
-    <AppBar sx={{
-        width: "100%",
-        padding: { xs: "0 8px", sm: "0 16px", md: "0 32px" }, // Padding for different breakpoints
-      }}>
+    <AppBar sx={{ width: "100%", padding: { xs: "0 8px", sm: "0 16px", md: "0 32px" } }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <Typography
@@ -103,15 +103,9 @@ function ResponsiveAppBar() {
             <Menu
               id="menu-appbar"
               anchorEl={anchorElNav}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "left",
-              }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
               keepMounted
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "left",
-              }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
               sx={{ display: { xs: "block", md: "none" } }}
@@ -146,15 +140,9 @@ function ResponsiveAppBar() {
               sx={{ mt: "45px" }}
               id="menu-appbar"
               anchorEl={anchorElUser}
-              anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
               keepMounted
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
@@ -172,3 +160,4 @@ function ResponsiveAppBar() {
 }
 
 export default ResponsiveAppBar;
+

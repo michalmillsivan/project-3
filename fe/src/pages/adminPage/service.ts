@@ -27,7 +27,7 @@ export async function getVacationsApi(): Promise<Array<VacationUI>> {
     console.log("Fetching vacations...");
     
     const token = localStorage.getItem("token");
-    console.log("Token:", token);
+    console.log("get vacation Token:", token);
     
     if (!token) {
         console.error("No token found. User might not be logged in.");
@@ -81,17 +81,19 @@ export type FollowersUI = {
 
 
 export async function deleteVacationApi(vacationId: number): Promise<any> {
-    // const token = localStorage.getItem("token");
-    // if (!token) {
-    //     console.error("No token found. User might not be logged in.");
-    //     throw new Error("Unauthorized. Token is missing.");
-    // }
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.error("No token found. User might not be logged in.");
+        throw new Error("Unauthorized. Token is missing.");
+    }
 
     try {
-        // Send the delete request and return the response
-        const response = await axios.delete(`http://localhost:3000/vacations/delete/${vacationId}`); //, {headers: {Authorization: `Bearer ${token}`,},}
-        console.log(`Vacation ${vacationId} deleted successfully.`);
-        // return response.data; 
+        await axios.delete(`http://localhost:3000/vacations/delete/${vacationId}`,{
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }); 
+        console.log(`Vacation ${vacationId} deleted successfully.`); 
     } catch (error) {
         console.error("Error deleting vacation:", error);
         throw error;

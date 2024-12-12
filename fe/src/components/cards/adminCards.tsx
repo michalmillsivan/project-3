@@ -18,20 +18,27 @@ type VacationCardProps = {
         price: string;
         image: string;
     };
-    isAdmin?: boolean; // Indicates if the card is for the admin view
-    onEdit?: () => void; // Edit button handler
-    onDelete?: () => void; // Delete button handler
+    isAdmin?: boolean; 
+    onEdit?: () => void; 
+    onDelete?: () => void;
 };
 
 const AdminVacationCard: React.FC<VacationCardProps> = ({ vacation, isAdmin, onEdit, onDelete }) => {
+    console.log("vacation.image", vacation.image);
     return (
         <Card sx={{ maxWidth: 345 , minWidth: 288, minHeight: 393}}>
+            {vacation.image ? (
             <CardMedia
                 component="img"
                 height="140"
-                image={new URL(`../../images/${vacation.image}`, import.meta.url).href}
+                image={ `http://localhost:3000/uploads/${vacation.image}`} 
                 alt={vacation.destination}
             />
+            ):(
+                <Typography variant="body2" color="text.secondary">
+                    Loading Image...
+                </Typography>
+            )}
             <CardContent>
                 <Typography variant="h5" component="div">
                     {vacation.destination}

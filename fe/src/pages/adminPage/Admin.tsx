@@ -9,30 +9,51 @@ import {
     DialogContent,
     DialogActions,
 } from "@mui/material";
-import { getVacationsApi, deleteVacationApi, addVacationApi } from "./service";
+import { getVacationsApi, deleteVacationApi } from "./service";
 import MenuAppBar from "../../components/app-bar/app-bar";
 import AdminVacationCard from "../../components/cards/adminCards";
-import AddVacationModal from "../../components/addVModal/addVM";
+import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom"
+
 
 const AdminPage = () => {
+    console.log("Admin page started");
+    const navigate = useNavigate();
+    
     const [vacations, setVacations] = useState<any[]>([]);
+    const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [vacationToDelete, setVacationToDelete] = useState<number | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    
-
-    const user = localStorage.getItem("user");
-    const userRole = user ? JSON.parse(user).role : null;
+    const [currentPage, setCurrentPage] = useState(1); 
+    const itemsPerPage = 10;
 
     useEffect(() => {
-        if (userRole !== "admin") {
-            alert("Access denied. Only admins can access this page.");
-            window.location.href = "/vacations"; // Redirect non-admins
-        } else {
-            fetchVacations();
+
+        const checkAdminStatus = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    throw new Error("No token found");
+                }
+                const decoded = jwtDecode<{ role?: string }>(token);
+                console.log("decoded.role:", decoded.role);
+
+                if (decoded.role === "admin") {
+                    setIsUserAdmin(true);
+                    fetchVacations();
+                } else {
+                    setIsUserAdmin(false);
+                    window.location.href = "/vacations";
+                }
+            } catch (error) {
+                console.log("Failed to check admin status:", error);
+                alert("Error checking admin status. Please try again later.");
+                window.location.href = "/vacations";
+            }
         }
-    }, [userRole]);
+        checkAdminStatus();
+    }, []);
 
     const fetchVacations = async () => {
         try {
@@ -50,9 +71,9 @@ const AdminPage = () => {
     const handleDelete = async () => {
         if (vacationToDelete === null) return;
         console.log("Deleting vacation:", vacationToDelete);
-
-
         try {
+            console.log("Deleting vacation...");
+            
             await deleteVacationApi(vacationToDelete);
             setVacations((prev) => prev.filter((v) => v.vacation_id !== vacationToDelete));
             alert("Vacation deleted successfully.");
@@ -65,29 +86,35 @@ const AdminPage = () => {
         }
     };
 
-    const handleAddVacation = async (vacation: {
-        destination: string;
-        description: string;
-        start_date: Date | null;
-        end_date: Date | null;
-        price: string;
-        image: File | null;
-      }) => {
-        console.log("Vacation to Add:", vacation);
+    const totalPages = Math.ceil(vacations.length / itemsPerPage);
+    const indexOfLastVacation = currentPage * itemsPerPage;
+    const indexOfFirstVacation = indexOfLastVacation - itemsPerPage;
+    const currentVacations = vacations.slice(indexOfFirstVacation, indexOfLastVacation);
 
-        try {
-            await addVacationApi(vacation);
-            alert("Vacation added successfully.");
-
-
-        } catch (error) {
-            console.log("couldnt add vacation", error);
-            alert("Failed to add vacation.");   
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage((prevPage) => prevPage + 1);
         }
     };
 
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage((prevPage) => prevPage - 1);
+        }
+    };
+
+    
+    if (isUserAdmin === null) {
+        return <Typography variant="h5">Checking admin status...</Typography>;
+    }
+
+    if (!isUserAdmin) {
+        return (<div>
+            <h1>Access Denied</h1>
+        </div>)
+    }
+
     return (
-        
         <div style={{ width: "100%", minHeight: "100vh", overflowX: "hidden" }}>
             <MenuAppBar />
             <Box
@@ -103,39 +130,65 @@ const AdminPage = () => {
                     variant="contained"
                     color="primary"
                     sx={{ marginBottom: "16px" }}
-                    onClick={() => setIsModalOpen(true)}
-                    // sx={{ mb: 2 }}
+                    onClick={() => navigate("/add-vacation")}
                 >
                     Add Vacation
                 </Button>
-                {/* <AddVacationModal
-                    open={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    onAddVacation={handleAddVacation}
-                /> */}
-
-                <Grid container spacing={4}>
+            
+                <Grid container spacing={4} sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+    }}>
                     {isLoading ? (
                         <Typography variant="h5" align="center">
                             Loading...
                         </Typography>
-                    ) : vacations.map((vacation: any) => (
-                        <Grid item xs={12} sm={6} md={4} lg={3} key={vacation.vacation_id}>
-                            <AdminVacationCard
-                                vacation={vacation}
-                                isAdmin={true} // Indicates this is for admin
-                                onEdit={() => alert("Edit Vacation Modal Coming Soon!")}
-                                onDelete={() => {
-                                    setVacationToDelete(vacation.vacation_id);
-                                    setDeleteDialogOpen(true);
-                                }}
-                            />
-                        </Grid>
-                    ))}
+                    ) : (
+                        currentVacations.map((vacation: any) => (
+                            <Grid item xs={12} sm={6} md={4} lg={3} key={vacation.vacation_id}>
+                                <AdminVacationCard
+                                    vacation={vacation}
+                                    isAdmin={true}
+                                    onEdit={() => navigate("/edit-vacation/" + vacation.vacation_id)}
+                                    onDelete={() => {
+                                        setVacationToDelete(vacation.vacation_id);
+                                        setDeleteDialogOpen(true);
+                                    }}
+                                />
+                            </Grid>
+                        ))
+                    )}
                 </Grid>
+                <Box
+                    sx={{
+                        marginTop: "16px",
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: "16px",
+                        width: "100%",
+                    }}
+                >
+                    <Button
+                        variant="outlined"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                    <Typography variant="body1">
+                        Page {currentPage} of {totalPages}
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                </Box>
             </Box>
 
-            {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
                 <DialogTitle>Confirm Delete</DialogTitle>
                 <DialogContent>

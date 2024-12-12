@@ -13,6 +13,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+
 
 const Login = () => {
   console.log("Login page started");
@@ -27,14 +29,19 @@ const Login = () => {
     try {
       console.log("try Logging in...");
 
-      const response = await axios.post("http://localhost:3000/users/login", { email, password });
+      const response = await axios.post("http://localhost:3000/auth/login", { email, password });
       console.log("response.data: ", response.data);
       const { token, user } = response.data;
+      const decoded = jwtDecode<{ role?: string }>(token);
+      console.log("decoded:", decoded);
+      
+      console.log("decoded.role:", decoded.role);
 
       localStorage.setItem("token", token); // Save the token
       localStorage.setItem("user", JSON.stringify(user)); // Save user details
       alert("Login successful");
-      if (user.role === "admin") {
+
+      if (decoded.role === "admin") {
         navigate("/admin");
       } else { navigate("/vacations"); }///will navigate to the vacations page
     } catch (error) {

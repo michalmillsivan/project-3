@@ -4,6 +4,8 @@ import { getFollowersApi, getVacationsApi, toggleFollowerApi } from "./service";
 import MenuAppBar from "../../components/app-bar/app-bar";
 import VacationCard from "../../components/cards/card";
 import FilterCheckboxes from "../../components/filter-check-boxes/filter";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const VacationsPage = () => {
     const [vacations, setVacations] = useState<any[]>([]);
@@ -12,12 +14,36 @@ const VacationsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [activeFilter, setActiveFilter] = useState<"following" | "notStarted" | "occurring" | null>(null);
     const itemsPerPage = 10;
+    const navigate = useNavigate();
 
     const user = localStorage.getItem("user");
+    console.log("user:", user);
+    
     const user_id = user ? JSON.parse(user).user_id : null;
 
     useEffect(() => {
         console.log("Vacations page started");
+
+        const checkUserRole = () => {
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    throw new Error("No token found");
+                }
+                const decoded = jwtDecode<{ role?: string }>(token);
+                console.log("decoded.role:", decoded.role);
+
+                if (decoded.role === "admin") {
+                    alert("Access denied. Admins are not allowed on this page.");
+                    navigate("/admin"); 
+                }
+            } catch (error) {
+                console.error("Failed to check user role:", error);
+                alert("Error checking user role. Please try again later.");
+            }
+        };
+
+        checkUserRole();
         
         async function getVacationsData() {
             try {
@@ -64,6 +90,8 @@ const VacationsPage = () => {
         let filteredVacations = [...vacations];
 
         if (activeFilter === "following") {
+            console.log("Filtering by following vacations...");
+            
             filteredVacations = filteredVacations.filter((vacation) =>
                 followers.some(
                     (f) => f.user_id === user_id && f.vacation_id === vacation.vacation_id
